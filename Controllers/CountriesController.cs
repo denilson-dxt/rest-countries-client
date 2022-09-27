@@ -35,6 +35,14 @@ public class CountriesController : ControllerBase
         var countries = await _countriesService.GetAllCountriesAsXML();
         return Ok(countries);
     }
+    [HttpGet("all/xls")]
+    public async Task<ActionResult> GetAllCountriesAsXLS()
+    {
+        var countries = await _countriesService.GetAllCountriesAsXLS();
+
+        return File(countries, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "countries.xls");
+    }
 
     [HttpGet("country/{name}")]
     public async Task<ActionResult> GetCountryInfo(string name)
@@ -64,6 +72,17 @@ public class CountriesController : ControllerBase
             return NotFound("Sorry, the country you searched for was not found");
 
         return Ok(countryInfo);
+    }
+
+    [HttpGet("xls/{name}")]
+    public async Task<ActionResult> GetCountryInfoAsXLS(string name)
+    {
+        var countryInfo = await _countriesService.GetCountryInfoAsXLS(name);
+        if (countryInfo == null)
+            return NotFound("Sorry, the country you searched for was not found");
+
+        return File(countryInfo, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "countries.xls");
     }
 }
 

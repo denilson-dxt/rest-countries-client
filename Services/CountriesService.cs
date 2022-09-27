@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Serialization;
+using ClosedXML.Excel;
 using rest_countries_client.Models;
 
 namespace rest_countries_client.Services;
@@ -29,15 +30,23 @@ public class CountriesService
         }
         return csv;
     }
+    public async Task<Byte[]> GetAllCountriesAsXLS()
+    {
+        var countries = await GetAllCountries();
 
+        return _convertCountriesToXLS(countries);
+        
+    }
     public async Task<string> GetAllCountriesAsXML()
     {
         var countries = await GetAllCountries();
         var xml = "";
         var serializer = new XmlSerializer(typeof(List<Country>));
-        
-        using(var sww = new StringWriter()){
-            using (XmlWriter writter = XmlWriter.Create(sww)){
+
+        using (var sww = new StringWriter())
+        {
+            using (XmlWriter writter = XmlWriter.Create(sww))
+            {
                 serializer.Serialize(writter, countries);
                 xml = sww.ToString();
             }
@@ -66,6 +75,15 @@ public class CountriesService
         csv += _convertCountryInfoToCsv(country);
         return csv;
     }
+    public async Task<Byte[]> GetCountryInfoAsXLS(string name)
+    {
+        var country = await GetCountryInfo(name);
+        var countries = new List<Country>();
+        countries.Add(country);
+
+
+        return _convertCountriesToXLS(countries);
+    }
     public async Task<string?> GetCountryInfoAsXML(string name)
     {
         var country = await GetCountryInfo(name);
@@ -73,6 +91,43 @@ public class CountriesService
         return xml;
 
         //return _convertCountryInfoToCsv(country);
+    }
+    
+    public Byte[] _convertCountriesToXLS(List<Country> countries)
+    {
+        using (var workbook = new XLWorkbook()){
+            var worksheet = workbook.Worksheets.Add("Countries");
+            var currentRow = 1;
+            worksheet.Cell(currentRow, 1).Value = "Name";
+            worksheet.Cell(currentRow, 2).Value = "NativeName";
+            worksheet.Cell(currentRow, 3).Value = "Region";
+            worksheet.Cell(currentRow, 4).Value = "SubRegion";
+            worksheet.Cell(currentRow, 5).Value = "Population";
+            worksheet.Cell(currentRow, 6).Value = "Area";
+            worksheet.Cell(currentRow, 7).Value = "Timezone";
+            worksheet.Cell(currentRow, 8).Value = "FlagUrl";
+
+            foreach(var country in countries){
+                currentRow ++;
+                worksheet.Cell(currentRow, 1).Value = country.Name;
+                worksheet.Cell(currentRow, 2).Value = country.NativeName;
+                worksheet.Cell(currentRow, 3).Value = country.Region;
+                worksheet.Cell(currentRow, 4).Value = country.SubRegion;
+                worksheet.Cell(currentRow, 5).Value = country.Population;
+                worksheet.Cell(currentRow, 6).Value = country.Area;
+                worksheet.Cell(currentRow, 7).Value = country.TimeZone;
+                worksheet.Cell(currentRow, 8).Value = country.FlagUrl;
+                
+            }
+
+            using (var stream  = new MemoryStream()){
+                workbook.SaveAs(stream);
+                var content = stream.ToArray();
+                return content;
+            }
+
+        }
+        
     }
 
     private string _convertCountryInfoToXML(Country country)
@@ -103,7 +158,6 @@ public class CountriesService
         var countryJsonContent = jsonElement;
 
         country.Name = countryJsonContent.GetProperty("name").GetProperty("common").GetString();
-        Console.WriteLine(country.Name);
         try
         {
             country.NativeName = countryJsonContent.GetProperty("name").GetProperty("nativeName").EnumerateObject().First().Value.GetProperty("common").GetString();
@@ -111,7 +165,6 @@ public class CountriesService
         catch { }
 
         country.Region = countryJsonContent.GetProperty("region").GetString();
-        System.Console.WriteLine(country.Region);
         var subregion = new JsonElement();
         countryJsonContent.TryGetProperty("subregion", out subregion);
         try
@@ -121,16 +174,12 @@ public class CountriesService
         }
         catch { }
         country.Population = countryJsonContent.GetProperty("population").GetInt32();
-        System.Console.WriteLine(country.Population);
 
         country.Area = countryJsonContent.GetProperty("area").GetDouble();
-        System.Console.WriteLine(country.Area);
 
         country.TimeZone = countryJsonContent.GetProperty("timezones").EnumerateArray().First().GetString();
-        System.Console.WriteLine(country.TimeZone);
 
         country.FlagUrl = countryJsonContent.GetProperty("flags").GetProperty("png").GetString();
-        System.Console.WriteLine(country.FlagUrl);
 
         return country;
     }
