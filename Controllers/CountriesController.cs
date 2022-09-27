@@ -29,6 +29,12 @@ public class CountriesController : ControllerBase
         var countries = await _countriesService.GetAllCountriesAsCSV();
         return Ok(countries);
     }
+    [HttpGet("all/xml")]
+    public async Task<ActionResult> GetAllCountriesAsXML()
+    {
+        var countries = await _countriesService.GetAllCountriesAsXML();
+        return Ok(countries);
+    }
 
     [HttpGet("country/{name}")]
     public async Task<ActionResult> GetCountryInfo(string name)
@@ -44,6 +50,16 @@ public class CountriesController : ControllerBase
     public async Task<ActionResult> GetCountriesAsCSV(string name)
     {
         var countryInfo = await _countriesService.GetCountryInfoAsCSV(name);
+        if (countryInfo == null)
+            return NotFound("Sorry, the country you searched for was not found");
+
+        return Ok(countryInfo);
+    }
+
+    [HttpGet("xml/{name}")]
+    public async Task<ActionResult> GetCountryInfoAsXML(string name)
+    {
+        var countryInfo = await _countriesService.GetCountryInfoAsXML(name);
         if (countryInfo == null)
             return NotFound("Sorry, the country you searched for was not found");
 

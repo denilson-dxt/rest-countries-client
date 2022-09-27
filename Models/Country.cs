@@ -1,8 +1,6 @@
 using Newtonsoft.Json;
-using rest_countries_client.Converters;
 namespace rest_countries_client.Models;
 
-[JsonConverter(typeof(JsonPathConverter))]
 public class Country
 {
     [JsonProperty("name/common")]

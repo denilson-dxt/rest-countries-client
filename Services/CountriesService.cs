@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Xml;
+using System.Xml.Serialization;
 using rest_countries_client.Models;
 
 namespace rest_countries_client.Services;
@@ -21,11 +23,28 @@ public class CountriesService
     {
         var countries = await GetAllCountries();
         var csv = "name,nativeName,region,subregion,population,area,timezone,flagUrl\n";
-        foreach(var country in countries){
+        foreach (var country in countries)
+        {
             csv += $"{_convertCountryInfoToCsv(country)}\n";
         }
         return csv;
     }
+
+    public async Task<string> GetAllCountriesAsXML()
+    {
+        var countries = await GetAllCountries();
+        var xml = "";
+        var serializer = new XmlSerializer(typeof(List<Country>));
+        
+        using(var sww = new StringWriter()){
+            using (XmlWriter writter = XmlWriter.Create(sww)){
+                serializer.Serialize(writter, countries);
+                xml = sww.ToString();
+            }
+        }
+        return xml;
+    }
+
     public async Task<Country?> GetCountryInfo(string name)
     {
         var url = $"https://restcountries.com/v3.1/name/{name}";
@@ -40,16 +59,40 @@ public class CountriesService
 
     public async Task<string?> GetCountryInfoAsCSV(string name)
     {
+        var csv = "name,nativeName,region,subregion,population,area,timezone,flagUrl\n";
         var country = await GetCountryInfo(name);
         if (country == null) return null;
 
-        return _convertCountryInfoToCsv(country);
+        csv += _convertCountryInfoToCsv(country);
+        return csv;
+    }
+    public async Task<string?> GetCountryInfoAsXML(string name)
+    {
+        var country = await GetCountryInfo(name);
+        var xml = _convertCountryInfoToXML(country);
+        return xml;
+
+        //return _convertCountryInfoToCsv(country);
+    }
+
+    private string _convertCountryInfoToXML(Country country)
+    {
+        var serializer = new XmlSerializer(typeof(Country));
+        var xml = "";
+        using (var sww = new StringWriter())
+        {
+            using (XmlWriter writer = XmlWriter.Create(sww))
+            {
+                serializer.Serialize(writer, country);
+                xml = sww.ToString();
+            }
+        }
+        return xml;
     }
 
     private string _convertCountryInfoToCsv(Country country)
     {
-        var countryCSV = "name,nativeName,region,subregion,population,area,timezone,flagUrl\n";
-        countryCSV += $"{country.Name},{country.NativeName},{country.Region},{country.SubRegion},{country.Population},{country.Area},{country.TimeZone},{country.FlagUrl}";
+        var countryCSV = $"{country.Name},{country.NativeName},{country.Region},{country.SubRegion},{country.Population},{country.Area},{country.TimeZone},{country.FlagUrl}";
 
         return countryCSV;
     }
