@@ -7,19 +7,31 @@ using rest_countries_client.Models;
 namespace rest_countries_client.Services;
 public class CountriesService
 {
+
+    ///<summary>
+    /// Consome a api de paises
+    ///</summary>
+    ///<returns>Lista de paises do tipo Country<returns>
     public async Task<List<Country>> GetAllCountries()
     {
         var url = "https://restcountries.com/v3.1/all";
         var client = new HttpClient();
         var res = await client.GetAsync(url);
+
+        // Carregar o conteudo da api e converter em um documento JSON
         var countriesJsonContent = JsonDocument.Parse(await res.Content.ReadAsStringAsync()).RootElement.EnumerateArray();
+
         var countries = new List<Country>();
         foreach (var countryJsonContent in countriesJsonContent)
         {
+            // Adicionar cada pais a lista dos paises
             countries.Add(_extractCountryInfoFromJsonContent(countryJsonContent));
         }
         return countries;
     }
+
+
+    ///<returns>Retorna os paises em formato CSV<returns>
     public async Task<string> GetAllCountriesAsCSV()
     {
         var countries = await GetAllCountries();
@@ -30,30 +42,36 @@ public class CountriesService
         }
         return csv;
     }
+
+    ///<returns>Retorna os paises em formato XLS<returns>
     public async Task<Byte[]> GetAllCountriesAsXLS()
     {
         var countries = await GetAllCountries();
 
         return _convertCountriesToXLS(countries);
-        
+
     }
+
+    ///<returns>Retorna os paises em formato XML<returns>
     public async Task<string> GetAllCountriesAsXML()
     {
         var countries = await GetAllCountries();
         var xml = "";
         var serializer = new XmlSerializer(typeof(List<Country>));
 
-        using (var sww = new StringWriter())
+        using (var stringWriter = new StringWriter())
         {
-            using (XmlWriter writter = XmlWriter.Create(sww))
+            using (XmlWriter writter = XmlWriter.Create(stringWriter))
             {
                 serializer.Serialize(writter, countries);
-                xml = sww.ToString();
+                xml = stringWriter.ToString();
             }
         }
         return xml;
     }
 
+    ///<param name="name">Nome do pais a ser procurado</param>
+    ///<returns>Retorna o pais em formato JSON<returns>
     public async Task<Country?> GetCountryInfo(string name)
     {
         var url = $"https://restcountries.com/v3.1/name/{name}";
@@ -66,6 +84,8 @@ public class CountriesService
         return country;
     }
 
+    ///<param name="name">Nome do pais a ser procurado</param>
+    ///<returns>Retorna o pais em formato CSV<returns>
     public async Task<string?> GetCountryInfoAsCSV(string name)
     {
         var csv = "name,nativeName,region,subregion,population,area,timezone,flagUrl\n";
@@ -75,6 +95,9 @@ public class CountriesService
         csv += _convertCountryInfoToCsv(country);
         return csv;
     }
+
+    ///<param name="name">Nome do pais a ser procurado</param>
+    ///<returns>Retorna o pais em formato XLS<returns>
     public async Task<Byte[]> GetCountryInfoAsXLS(string name)
     {
         var country = await GetCountryInfo(name);
@@ -84,6 +107,9 @@ public class CountriesService
 
         return _convertCountriesToXLS(countries);
     }
+
+    ///<param name="name">Nome do pais a ser procurado</param>
+    ///<returns>Retorna o pais em formato XML<returns>
     public async Task<string?> GetCountryInfoAsXML(string name)
     {
         var country = await GetCountryInfo(name);
@@ -92,10 +118,13 @@ public class CountriesService
 
         //return _convertCountryInfoToCsv(country);
     }
-    
-    public Byte[] _convertCountriesToXLS(List<Country> countries)
+
+    ///<param name="countries">Lista de paises</param>
+    ///<returns>Retorna os paises em formato Byte[]<returns>
+    private Byte[] _convertCountriesToXLS(List<Country> countries)
     {
-        using (var workbook = new XLWorkbook()){
+        using (var workbook = new XLWorkbook())
+        {
             var worksheet = workbook.Worksheets.Add("Countries");
             var currentRow = 1;
             worksheet.Cell(currentRow, 1).Value = "Name";
@@ -107,8 +136,9 @@ public class CountriesService
             worksheet.Cell(currentRow, 7).Value = "Timezone";
             worksheet.Cell(currentRow, 8).Value = "FlagUrl";
 
-            foreach(var country in countries){
-                currentRow ++;
+            foreach (var country in countries)
+            {
+                currentRow++;
                 worksheet.Cell(currentRow, 1).Value = country.Name;
                 worksheet.Cell(currentRow, 2).Value = country.NativeName;
                 worksheet.Cell(currentRow, 3).Value = country.Region;
@@ -117,29 +147,32 @@ public class CountriesService
                 worksheet.Cell(currentRow, 6).Value = country.Area;
                 worksheet.Cell(currentRow, 7).Value = country.TimeZone;
                 worksheet.Cell(currentRow, 8).Value = country.FlagUrl;
-                
+
             }
 
-            using (var stream  = new MemoryStream()){
+            using (var stream = new MemoryStream())
+            {
                 workbook.SaveAs(stream);
                 var content = stream.ToArray();
                 return content;
             }
 
         }
-        
+
     }
 
+    ///<param name="country">Nome do pais a ser procurado</param>
+    ///<returns>Retorna o pais em formato XML<returns>
     private string _convertCountryInfoToXML(Country country)
     {
         var serializer = new XmlSerializer(typeof(Country));
         var xml = "";
-        using (var sww = new StringWriter())
+        using (var stringWriter = new StringWriter())
         {
-            using (XmlWriter writer = XmlWriter.Create(sww))
+            using (XmlWriter writer = XmlWriter.Create(stringWriter))
             {
                 serializer.Serialize(writer, country);
-                xml = sww.ToString();
+                xml = stringWriter.ToString();
             }
         }
         return xml;
@@ -152,6 +185,11 @@ public class CountriesService
         return countryCSV;
     }
 
+    ///<summary>
+    /// Extrai os dados de um pais de um elemento json para um object do tipo Country
+    ///</summary>
+    ///<param name="jsonElement">Representa o elemento json com os dados de um pais</param>
+    ///<returns>Objecto do tipo Country<returns>
     private Country _extractCountryInfoFromJsonContent(JsonElement jsonElement)
     {
         var country = new Country();

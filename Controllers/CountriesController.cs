@@ -70,7 +70,7 @@ public class CountriesController : ControllerBase
         var countryInfo = await _countriesService.GetCountryInfoAsXML(name);
         if (countryInfo == null)
             return NotFound("Sorry, the country you searched for was not found");
-
+        
         return Ok(countryInfo);
     }
 
